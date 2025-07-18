@@ -12,7 +12,7 @@
   "dependencies": {
     "node-libs-browser": "^2.1.0",
     "react": "16.9.0",
-    "react-native": "0.61.4",
+    "react-native": "0.69.12",
     "react-native-randombytes": "^3.5.1",
     "react-native-scrypt": "file:..",
     "sjcl": "^1.0.7"
