@@ -1,5 +1,6 @@
 
 #include <errno.h>
+#include <stdlib.h>
 #include <string.h>
 #include <jni.h>
 #include <android/log.h>
@@ -23,6 +24,11 @@ Java_com_crypho_scrypt_RNScryptModule_scryptBridgeJNI( JNIEnv* env, jobject thiz
 {
     int i;
     char *msg_error;
+    jbyte *passphrase = NULL;
+    jchar *salt_chars = NULL;
+    uint8_t *parsedSalt = NULL;
+    uint8_t *hashbuf = NULL;
+    jbyteArray result = NULL;
 
     jint N_i = callIntMethod(env, JMID_Integer_intValue, N, SCRYPT_N);
     jint r_i = callIntMethod(env, JMID_Integer_intValue, r, SCRYPT_r);
@@ -41,19 +47,19 @@ Java_com_crypho_scrypt_RNScryptModule_scryptBridgeJNI( JNIEnv* env, jobject thiz
         goto END;
     }
 
-    jbyte *passphrase = (*env)->GetByteArrayElements(env, pass, NULL);
+    passphrase = (*env)->GetByteArrayElements(env, pass, NULL);
     if((*env)->ExceptionOccurred(env)) {
         LOGE("Failed to get passphrase elements.");
         goto END;
     }
 
-    jchar *salt_chars = (*env)->GetCharArrayElements(env, salt, NULL);
+    salt_chars = (*env)->GetCharArrayElements(env, salt, NULL);
     if((*env)->ExceptionOccurred(env)) {
         LOGE("Failed to get salt elements.");
         goto END;
     }
 
-    uint8_t *parsedSalt = malloc(sizeof(uint8_t) * saltLen);
+    parsedSalt = malloc(sizeof(uint8_t) * saltLen);
     if (parsedSalt == NULL) {
         msg_error = "Failed to malloc parsedSalt.";
         LOGE("%s", msg_error);
@@ -61,7 +67,7 @@ Java_com_crypho_scrypt_RNScryptModule_scryptBridgeJNI( JNIEnv* env, jobject thiz
         goto END;
     }
 
-    uint8_t *hashbuf = malloc(sizeof(uint8_t) * dkLen_i);
+    hashbuf = malloc(sizeof(uint8_t) * dkLen_i);
     if (hashbuf == NULL) {
         msg_error = "Failed to malloc hashbuf.";
         LOGE("%s", msg_error);
@@ -73,7 +79,7 @@ Java_com_crypho_scrypt_RNScryptModule_scryptBridgeJNI( JNIEnv* env, jobject thiz
         parsedSalt[i] = (uint8_t) salt_chars[i];
     }
 
-    if (libscrypt_scrypt(passphrase, passLen, parsedSalt, saltLen, N_i, r_i, p_i, hashbuf, dkLen_i)) {
+    if (libscrypt_scrypt((const uint8_t *) passphrase, passLen, parsedSalt, saltLen, N_i, r_i, p_i, hashbuf, dkLen_i)) {
         switch (errno) {
             case EINVAL:
                 msg_error = "N must be a power of 2 greater than 1.";
@@ -89,7 +95,7 @@ Java_com_crypho_scrypt_RNScryptModule_scryptBridgeJNI( JNIEnv* env, jobject thiz
         goto END;
     }
 
-    jbyteArray result = (*env)->NewByteArray(env, dkLen_i);
+    result = (*env)->NewByteArray(env, dkLen_i);
     if((*env)->ExceptionOccurred(env)) {
         LOGE("Failed to allocate result buffer.");
         goto END;
